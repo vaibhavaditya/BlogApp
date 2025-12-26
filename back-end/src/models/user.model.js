@@ -81,6 +81,10 @@ const userSchema = new Schema({
     followingCount: {
         type: Number,
         default: 0
+    },
+
+    refreshToken: {
+        type: String
     }
 
 },{timestamps: true})

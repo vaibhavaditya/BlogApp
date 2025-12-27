@@ -1,4 +1,5 @@
 import express from 'express'
+import { errorMiddleware } from './middlewares/error.middleware.js';
 
 const app = express();
 
@@ -23,4 +24,6 @@ app.use('/api/v1/posts',postRoutes);
 app.use('/api/v1/comments',commentRoutes);
 app.use('/api/v1/likes',likeRoutes);
 
+//last middleware as it wont be called if any route after this
+app.use(errorMiddleware)
 export default app;

@@ -96,8 +96,65 @@ const loginUser = asyncHandler(async(req,res)=>{
 
 })
 
+const logoutUser = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+
+    await User.findOneAndUpdate(
+        userId,
+        {
+            $unset:{
+                refreshToken:""
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    const options = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax"
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken".option)
+    .json(new apiResponse(200,{},"User logout Successfully"))
+})
+
+const changeCurrentPassword = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+    const {oldPassword,newPassword} = req.body;
+
+    if(!oldPassword || !newPassword){
+        throw new apiError(400,"Old password and new password are required")
+    }
+    const user = await User.findById(userId).select("+password");
+
+    if(!user){
+        throw new apiError(404,"User not found")
+    }   
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+    if(!isPasswordCorrect){
+        throw new apiError(401,"Old password is incorrect")
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,{},"Password changed successfully"))
+
+})
+
 
 export {
     registerUser,
-    loginUser
+    loginUser,
+    logoutUser,
+    changeCurrentPassword
 }

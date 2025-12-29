@@ -7,3 +7,4 @@ export const registerUser = (data)=>{
 export const loginUser = (data)=>{
     API.post("/users/login",data)
 }
+

@@ -25,10 +25,29 @@ const Register = ()=>{
     const handleSubmit = async(e)=>{
         e.preventDefault();
 
+        const Form = {
+            username: form.username.trim(),
+            fullName: form.fullName.trim(),
+            email: form.email.trim(),
+            password: form.password.trim(),
+            bio: form.bio.trim(),
+        };
+
+        if(
+            !Form.username ||
+            !Form.fullName ||
+            !Form.email ||
+            !Form.password
+        ){
+            alert("Please fill all required fields");
+            return;
+        }
+
+        
         const formData = new FormData()
 
-        Object.keys(form).forEach((key)=>{
-            formData.append(key,form[key].trim())
+        Object.keys(Form).forEach((key)=>{
+            formData.append(key,Form[key])
         })
 
         if(avatar){

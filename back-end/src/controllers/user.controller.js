@@ -2,6 +2,7 @@ import {User} from '../models/user.model.js';
 import {asyncHandler} from '../utils/asyncHandler.js';
 import apiError from '../utils/apiError.js';
 import apiResponse from '../utils/apiResponse.js';
+import mongoose from 'mongoose';
 
 
 const generateAccessAndRefreshToken = async(userId)=>{
@@ -99,6 +100,10 @@ const loginUser = asyncHandler(async(req,res)=>{
 const logoutUser = asyncHandler(async(req,res)=>{
     const userId = req.user._id;
 
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
     await User.findOneAndUpdate(
         userId,
         {
@@ -126,6 +131,11 @@ const logoutUser = asyncHandler(async(req,res)=>{
 
 const changeCurrentPassword = asyncHandler(async(req,res)=>{
     const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
     const {oldPassword,newPassword} = req.body;
 
     if(!oldPassword || !newPassword){
@@ -151,10 +161,193 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
 
 })
 
+const getUserProfile = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    // const userProfile = await User.aggregate([
+    //     {
+    //         $match:{
+    //             _id: new mongoose.Types.ObjectId(userId)
+    //         }
+    //     },
+    //     {
+    //         $lookup:{
+    //             from: "posts",
+    //             localField:"_id",
+    //             foreignField:"author",
+    //             as: "userPosts"
+    //         }
+    //     },
+
+    //     {
+    //         $addFields:{
+    //             postsCount: {$size:"$userPPosts"}
+    //         }        
+    //     },
+
+    //     {
+    //         $project:{
+    //             username: 1,
+    //             fullName: 1,
+    //             bio: 1,
+    //             avatar: 1,
+    //             followersCount: 1,
+    //             postsCount: 1,
+    //             userPosts: 1
+    //         }
+    //     }
+    // ])
+
+    // if(!userProfile || userProfile.length === 0){
+    //     throw new apiError(404,"User not found")
+    // }
+
+    // return res
+    // .status(200)
+    // .json(new apiResponse(200,userProfile[0],"User profile fetched successfully"))
+
+    const userProfile = await User.findById(userId)
+    .select('username fullName bio avatar followersCount followingCount')
+    .populate('createdPosts')
+
+    if(!userProfile){
+        throw new apiError(404,"User not found")
+    }
+    return res
+    .status(200)
+    .json(new apiResponse(200,userProfile,"User profile fetched successfully"))
+
+})
+
+const getUserProfileById = asyncHandler(async(req,res)=>{
+    const userId = req.params.id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    const userProfile = await User.findById(userId)
+    .select('username fullName bio avatar followersCount followingCount')
+    .populate('createdPosts')
+
+    if(!userProfile){
+        throw new apiError(404,"User not found")
+    }
+    return res
+    .status(200)
+    .json(new apiResponse(200,userProfile,"User profile fetched successfully"))
+});
+
+const getAllFollowers = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    const user = await User.findById(userId).select('followers').populate({
+        path: 'followers',  
+        select: 'username fullName avatar'
+    });
+
+    if(!user){
+        throw new apiError(404,"User not found")
+    }
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,user.followers,"Followers fetched successfully"))
+})
+
+const getAllFollowing = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    const user = await User.findById(userId).select('following').populate({
+        path: 'following',
+        select: 'username fullName avatar'
+    })
+
+    if(!user){
+        throw new apiError(404,"User not found")
+    }
+    
+    return res
+    .status(200)
+    .json(new apiResponse(200,user.following,"Followers fetched successfully")) 
+})
+
+const getAllFollowersById = asyncHandler( async(req,res)=>{
+    const userId = req.params.id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    const user = await User.findById(userId).select('followers').populate({
+        path: 'followers',
+        select: 'username fullName avatar'
+    })
+
+    if(!user){
+        throw new apiError(404,"User not found")
+    }
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,user.followers,"All the followers"))
+})
+
+const getAllFollowingById = asyncHandler( async(req,res)=>{
+    const userId = req.params.id;
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    const user = await User.findById(userId).select('following').populate({
+        path: 'following',
+        select: 'username fullName avatar'
+    })
+
+    if(!user){
+        throw new apiError(404,"User not found")
+    }
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,user.following,"All the following"))
+})
+
+const changeAvatar = asyncHandler(async(req,res)=>{
+
+})
+
+const RemoveFollower = asyncHandler(async(req,res)=>{
+
+})
+
+const RemoveFollowing = asyncHandler(async(req,res)=>{
+
+})
+
+
 
 export {
     registerUser,
     loginUser,
     logoutUser,
-    changeCurrentPassword
+    changeCurrentPassword,
+    getUserProfileById,
+    getUserProfile,
+    getAllFollowers,
+    getAllFollowing,
+    getAllFollowersById,
+    getAllFollowingById
 }

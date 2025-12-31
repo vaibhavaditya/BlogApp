@@ -156,19 +156,18 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
 
 })
 
-const changeCurrentUsername = asyncHandler(async(req,res)=>{
+const changeCurrentUserDetails = asyncHandler(async(req,res)=>{
     const userId = req.user._id;
-    const {newUsername,password} = req.body;
+    const {newUsername,newFullName,newBio,password} = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(userId)){
         throw new apiError(400,"Invalid user id")
     }
 
-    if(!newUsername || !password || !password.trim()){
+    if(!newUsername.trim() || !password.trim() || !newFullName.trim() || !newBio.trim()){
         throw new apiError(400,"please provide both username and password")
     }
 
-    
     const usernameExist = await User.exists({username: newUsername});
     if(usernameExist){
         throw new apiError(400,"Username already exist")
@@ -184,12 +183,46 @@ const changeCurrentUsername = asyncHandler(async(req,res)=>{
         throw new apiError(401,"Password is incorrect")
     }
 
-    user.username = newUsername;
+    user.username = newUsername || user.username;
+    user.fullName = newFullName || user.fullName;
+    user.bio = newBio || user.bio;
+
     await user.save({validateBeforeSave: false})
     
     return res
     .status(200)
     .json(new apiResponse(200,{},"Username updated succesfully"))
+    
+})
+
+const changeAvatar = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    const avatarUrl = req.file?.path || '';
+    if(!avatarUrl){
+        throw new apiError(400,"Inavlid format/No file upload")
+    }
+
+    const newAvatarUser = await User.findByIdAndUpdate(
+        userId,
+        {
+            $set:{
+                avatar: avatarUrl
+            }
+        },
+    {new: true})
+
+    if(!newAvatarUser){
+        return new apiError(400,"Avatar cant be changed")
+    }
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,{},"avatarChanged"))
 
 })
 
@@ -357,36 +390,6 @@ const getAllFollowingById = asyncHandler( async(req,res)=>{
     .json(new apiResponse(200,user.following,"All the following"))
 })
 
-const changeAvatar = asyncHandler(async(req,res)=>{
-    const userId = req.user._id;
-
-    if(!mongoose.Types.ObjectId.isValid(userId)){
-        throw new apiError(400,"Invalid user id")
-    }
-
-    const avatarUrl = req.file?.path || '';
-    if(!avatarUrl){
-        throw new apiError(400,"Inavlid format/No file upload")
-    }
-
-    const newAvatarUser = await User.findByIdAndUpdate(
-        userId,
-        {
-            $set:{
-                avatar: avatarUrl
-            }
-        },
-    {new: true})
-
-    if(!newAvatarUser){
-        return new apiError(400,"Avatar cant be changed")
-    }
-
-    return res
-    .status(200)
-    .json(new apiResponse(200,{},"avatarChanged"))
-
-})
 
 const followAUser = asyncHandler(async(req,res)=>{
     const userId = req.user._id
@@ -560,5 +563,5 @@ export {
     followAUser,
     removeFollower,
     removeFollowing,
-    changeCurrentUsername
+    changeCurrentUserDetails
 }

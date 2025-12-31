@@ -7,7 +7,7 @@ import {
     getUserProfileById,
     logoutUser,
     changeCurrentPassword,
-    changeCurrentUsername,
+    changeCurrentUserDetails,
     getAllFollowers,
     getAllFollowing,
     getAllFollowersById,
@@ -27,8 +27,8 @@ router.route('/register').post(upload.single('avatar'),registerUser);
 router.route('/login').post(loginUser);
 router.route('/logout').post(authMiddleware,logoutUser);
 router.route('/change-password').post(authMiddleware,changeCurrentPassword);
-router.route('/change-username').post(authMiddleware,changeCurrentUsername)
-router.route('/change-avatar').post(authMiddleware,changeAvatar);
+router.route('/change-details').post(authMiddleware,changeCurrentUserDetails);
+router.route('/change-avatar').post(authMiddleware,upload.single('avatar'),changeAvatar);
 router.route('/profile').get(authMiddleware,getUserProfile);
 router.route('/profile/:id').get(getUserProfileById);
 

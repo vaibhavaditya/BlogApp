@@ -23,7 +23,7 @@ const generateAccessAndRefreshToken = async(userId)=>{
 const registerUser = asyncHandler( async(req,res)=>{
     const {username,fullName,email,password,bio} = req.body;
 
-    if(!username || !fullName || !email || !password){
+    if(!username || !fullName || !email || !password || !password.trim()){
         throw new apiError(400,"Required credentials are not given")
     }
 
@@ -56,13 +56,13 @@ const registerUser = asyncHandler( async(req,res)=>{
 const loginUser = asyncHandler(async(req,res)=>{
     const {username,password} = req.body;
 
-    if(!username || !password){
+    if(!username || !password || !password.trim()){
         throw new apiError(400,"Required credentials are not given")
     }
 
     const user = await User.findOne({username: username}).select("+password");
     if(!user){
-        throw new apiError(400,"User does not exit")
+        throw new apiError(400,"User does not exits with given username")
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password);
@@ -89,8 +89,6 @@ const loginUser = asyncHandler(async(req,res)=>{
     .json(new apiResponse(200,
         {
             user: user,
-            accessToken,
-            refreshToken
         },
         "User logged in successfully"
     ))
@@ -104,17 +102,14 @@ const logoutUser = asyncHandler(async(req,res)=>{
         throw new apiError(400,"Invalid user id")
     }
 
-    await User.findOneAndUpdate(
+    await User.findByIdAndUpdate(
         userId,
         {
             $unset:{
                 refreshToken:""
             }
         },
-        {
-            new: true
-        }
-    )
+    {new: true})
 
     const options = {
         httpOnly: true,
@@ -125,7 +120,7 @@ const logoutUser = asyncHandler(async(req,res)=>{
     return res
     .status(200)
     .clearCookie("accessToken",options)
-    .clearCookie("refreshToken".option)
+    .clearCookie("refreshToken",options)
     .json(new apiResponse(200,{},"User logout Successfully"))
 })
 
@@ -158,6 +153,43 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
     return res
     .status(200)
     .json(new apiResponse(200,{},"Password changed successfully"))
+
+})
+
+const changeCurrentUsername = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+    const {newUsername,password} = req.body;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    if(!newUsername || !password || !password.trim()){
+        throw new apiError(400,"please provide both username and password")
+    }
+
+    
+    const usernameExist = await User.exists({username: newUsername});
+    if(usernameExist){
+        throw new apiError(400,"Username already exist")
+    }
+    
+    const user = await User.findById(userId).select('+password')
+    if(!user){
+        throw new apiError(400,"Cannot find the user to update")
+    }
+    
+    const isPasswordCorrect = await user.isPasswordCorrect(password)
+    if(!isPasswordCorrect){
+        throw new apiError(401,"Password is incorrect")
+    }
+
+    user.username = newUsername;
+    await user.save({validateBeforeSave: false})
+    
+    return res
+    .status(200)
+    .json(new apiResponse(200,{},"Username updated succesfully"))
 
 })
 
@@ -278,7 +310,7 @@ const getAllFollowing = asyncHandler(async(req,res)=>{
     if(!user){
         throw new apiError(404,"User not found")
     }
-    
+
     return res
     .status(200)
     .json(new apiResponse(200,user.following,"Followers fetched successfully")) 
@@ -326,17 +358,191 @@ const getAllFollowingById = asyncHandler( async(req,res)=>{
 })
 
 const changeAvatar = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    const avatarUrl = req.file?.path || '';
+    if(!avatarUrl){
+        throw new apiError(400,"Inavlid format/No file upload")
+    }
+
+    const newAvatarUser = await User.findByIdAndUpdate(
+        userId,
+        {
+            $set:{
+                avatar: avatarUrl
+            }
+        },
+    {new: true})
+
+    if(!newAvatarUser){
+        return new apiError(400,"Avatar cant be changed")
+    }
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,{},"avatarChanged"))
 
 })
 
-const RemoveFollower = asyncHandler(async(req,res)=>{
+const followAUser = asyncHandler(async(req,res)=>{
+    const userId = req.user._id
+    const toFollow = req.params.id
+    if(!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(toFollow)){
+        throw new apiError(400,"Invalid user id")
+    }
 
+    if (userId.toString() === toFollow.toString()) {
+        throw new apiError(400, "You cannot follow yourself");
+    }
+
+
+    const user = await User.findByIdAndUpdate(
+        userId,
+        {
+            $addToSet:{
+                following: toFollow
+            },
+            $inc:{
+                followingCount: +1
+            }
+        },
+    {new: true})
+
+    const followedUser = await User.findByIdAndUpdate(
+        toFollow,
+        {
+            $addToSet:{
+                followers: userId
+            },
+
+            $inc:{
+                followersCount: +1
+            }
+        }
+    ,{new: true})
+
+
+    if(!user || !followedUser){
+        throw new apiError(404,"User cannot be addded in the following list at this moment")
+    }
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,{},"User added in following list successfully"))
 })
 
-const RemoveFollowing = asyncHandler(async(req,res)=>{
+const removeFollower = asyncHandler(async(req,res)=>{
+    const userId = req.user._id
+    const followerId = req.params.id
 
+    if(!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(followerId)){
+        throw new apiError(400,"Invalid user id")
+    }
+
+    if (userId.toString() === followerId.toString()) {
+        throw new apiError(400, "You cannot remove yourself from followers");
+    }
+
+    const isFollower = await User.exists({
+        _id: userId,
+        followers: followerId
+    });
+
+    if (!isFollower) {
+        throw new apiError(400, "User is not your follower");
+    }
+
+    const user = await User.findByIdAndUpdate(
+        userId,
+        {
+            $pull:{
+                followers: followerId
+            },
+            $inc:{
+                followersCount: -1
+            }
+        },
+    {new: true})
+    
+    const removedUser = await User.findByIdAndUpdate(
+        followerId,
+        {
+            $pull: {
+                following: userId
+            },
+            
+            $inc: {
+                followingCount: -1
+            }
+        },
+        {new: true})
+    if(!user || !removedUser){
+        throw new apiError(404,"User cannot be removed as a follower at this moment")
+    }
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,{},"Follower removed successfully"))
 })
 
+const removeFollowing = asyncHandler(async(req,res)=>{
+    const userId = req.user._id
+    const followingId = req.params.id
+
+    if(!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(followingId)){
+        throw new apiError(400,"Invalid user id")
+    }
+    
+    if (userId.toString() === followingId.toString()) {
+        throw new apiError(400, "You cannot remove yourself from following list");
+    }
+
+    const isFollowing = await User.exists({
+        _id: userId,
+        following: followingId
+    })
+
+    if(!isFollowing){
+        throw new apiError(400, "User is not your following list");
+    }
+
+    const user = await User.findByIdAndUpdate(
+        userId,
+        {
+            $pull: {
+                following: followingId
+            },
+            
+            $inc: {
+                followingCount: -1
+            }
+        }
+    ,{new: true})
+    
+    const removedFollowing = await User.findByIdAndUpdate(
+        followingId,
+        {
+            $pull:{
+                followers: userId
+            },
+            $inc:{
+                followersCount: -1
+            }
+        },{new: true})
+
+
+    if(!user || !removedFollowing){
+        throw new apiError(404,"User cannot be removed from the following list at this moment")
+    }
+
+    return res
+    .status(200)
+    .json(new apiResponse(200,{},"User removed from following list successfully"))
+})
 
 
 export {
@@ -349,5 +555,10 @@ export {
     getAllFollowers,
     getAllFollowing,
     getAllFollowersById,
-    getAllFollowingById
+    getAllFollowingById,
+    changeAvatar,
+    followAUser,
+    removeFollower,
+    removeFollowing,
+    changeCurrentUsername
 }

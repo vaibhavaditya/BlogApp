@@ -12,15 +12,15 @@ const postSchema = new Schema({
         trim: true
     },
 
-    postImage: {
+    postImages: [{
         type: String,
         trim: true
-    },
+    }],
 
-    postVideo: {
+    postVideos: [{
         type: String,
         trim: true
-    },
+    }],
 
     likedBy: [{
         type: Schema.Types.ObjectId,

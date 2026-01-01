@@ -10,11 +10,11 @@ const getAllPosts = asyncHandler(async(req,res)=>{
     if(!mongoose.Types.ObjectId.isValid(userId)){
         throw new apiError(400,"Invalid user ID");
     }
-    const allPosts = await Post.findById({author: userId})
-    .selecct('title description postImage postVideo likeCount commentsCount author createdAt')
+    const allPosts = await Post.find({author: userId})
+    .select('title description postImages postVideos likeCount commentsCount author createdAt')
     .populate({
         path: 'author',
-        select: 'username profileImage'
+        select: 'username avatar'
     })
     .sort({createdAt: -1});   
     
@@ -24,15 +24,27 @@ const getAllPosts = asyncHandler(async(req,res)=>{
 
 const createPost = asyncHandler(async(req,res)=>{
     const userId = req.user._id;
-    const {title, description, postImage, postVideo} = req.body;    
+    const {title, description} = req.body;    
     if(!mongoose.Types.ObjectId.isValid(userId)){
         throw new apiError(400,"Invalid user ID");
     }
+
+    const images = req.files?.images?.map(f=>f.path) || [];
+    const videos = req.files?.videos?.map(f=>f.path) || [];
+
+    if(images.length > 5 || videos.length > 2){
+        throw new apiError(400,"Exceeded maximum upload limit");
+    }
+
+    if (!title?.trim() && images.length === 0 && videos.length === 0) {
+        throw new apiError(400, "Post cannot be empty");
+    }
+
     const newPost = await Post.create({
         title,
         description,
-        postImage,
-        postVideo,  
+        postImages: images,
+        postVideos: videos,  
         author: userId
     });
 
@@ -50,7 +62,7 @@ const getPostById = asyncHandler(async(req,res)=>{
     }
 
     const post = await Post.findById(postId)
-    .select('title description postImage postVideo likeCount commentsCount author createdAt')
+    .select('title description postImages postVideos likeCount commentsCount author createdAt')
     .populate({ 
         path: 'author',
         select: 'username avatar'
@@ -65,7 +77,7 @@ const getPostById = asyncHandler(async(req,res)=>{
 const updatePost = asyncHandler(async(req,res)=>{
     const postId = req.params.id;
     const userId = req.user._id;
-    const {title, description, postImage, postVideo} = req.body;    
+    const {title, description} = req.body;    
     if(!mongoose.Types.ObjectId.isValid(postId)){
         throw new apiError(400,"Invalid post ID");
     }
@@ -74,14 +86,23 @@ const updatePost = asyncHandler(async(req,res)=>{
     if(!post){
         throw new apiError(404,"Post not found");
     }
-    if(post.author.toString() !== userId){
+    if(post.author.toString() !== userId.toString()){
         throw new apiError(403,"You are not authorized to update this post");
     }
 
     post.title = title || post.title;
     post.description = description || post.description;
-    post.postImage = postImage || post.postImage;
-    post.postVideo = postVideo || post.postVideo;
+
+    const images = req.files?.images?.map(f=>f.path) || [];
+    const videos = req.files?.videos?.map(f=>f.path) || [];
+
+    if (images.length > 0) {
+        post.postImages = images;
+    }
+
+    if (videos.length > 0) {
+        post.postVideos = videos;
+    }
 
     await post.save();
     return res.status(200).json(new apiResponse(200, post, "Post updated successfully"));
@@ -97,11 +118,11 @@ const deletePost = asyncHandler(async(req,res)=>{
     if(!post){
         throw new apiError(404,"Post not found");
     }
-    if(post.author.toString() !== userId){
+    if(post.author.toString() !== userId.toString()){
         throw new apiError(403,"You are not authorized to delete this post");
     }
 
-    await post.remove();
+    await Post.findByIdAndDelete(postId);    
     return res.status(200).json(new apiResponse(200, null, "Post deleted successfully"));
 });
 

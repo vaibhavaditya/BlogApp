@@ -1,11 +1,10 @@
 import { Router } from "express";
-
+import { authMiddleware } from "../middlewares/auth.middleware";
 const router = Router();
 
 router.route('/getCommentsByPost/:postId').get(getCommentsByPost);
-router.route('/addComment').post(isLoggedIn, addComment);
-router.route('/deleteComment/:id').delete(isLoggedIn, deleteComment);
-router.route('/updateComment/:id').put(isLoggedIn, updateComment);
-router.route('/commentcount/:postId').get(getCommentCount);
+router.route('/addComment/:postId').post(authMiddleware, addComment);
+router.route('/deleteComment/:id').delete(authMiddleware, deleteComment);
+router.route('/updateComment/:id').put(authMiddleware, updateComment);
 
 export default router;

@@ -1,12 +1,11 @@
 import jwt from 'jsonwebtoken'
-import { asyncHandler } from '../utils/asyncHandler.js';
 import { User } from '../models/user.model.js';
 import apiError from '../utils/apiError.js';
 
 
-export const authMiddleware = asyncHandler( async (req,_,next)=>{
+export const authMiddleware = async (req,_,next)=>{
     try {
-        const token = req.cookies.accessToken ||req.headers.authorization?.replace("Bearer","")
+        const token = req.cookies.accessToken ||req.headers.authorization?.replace("Bearer ","")
     
         if(!token){
             throw new apiError(401,'Not authorized, token missing');
@@ -25,4 +24,4 @@ export const authMiddleware = asyncHandler( async (req,_,next)=>{
     } catch (error) {
         throw new apiError(402,"Invalid access token")
     }
-})
+}

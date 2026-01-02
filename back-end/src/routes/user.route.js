@@ -22,6 +22,9 @@ import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
+router.route('/me').get(authMiddleware,(req,res)=>{
+    res.status(200).json({user: req.user});
+})
 
 router.route('/register').post(upload.single('avatar'),registerUser);
 router.route('/login').post(loginUser);

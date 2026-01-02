@@ -1,10 +1,13 @@
 import API from './index.js'
 
 export const registerUser = (data)=>{
-    API.post("/users/register",data)
+    return API.post("/users/register",data)
 }
 
 export const loginUser = (data)=>{
-    API.post("/users/login",data)
+    return API.post("/users/login",data)
 }
 
+export const getMe = ()=>{
+    return API.get("/users/me")
+}

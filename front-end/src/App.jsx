@@ -10,7 +10,7 @@ import Profile from "./pages/Profile.jsx";
 function App() {
     return (
       <>
-          <Navbar/>
+        <Navbar/>
 
           <Routes>
 
@@ -26,9 +26,17 @@ function App() {
                   </ProtectedRoute>
                 }
             />
+            
+            <Route
+                path="/posts/:id"
+                element={
+                  <ProtectedRoute>
+                    <PostDetails />
+                  </ProtectedRoute>
+                }
+            />
 
           </Routes>
-
       </>
     )
 }

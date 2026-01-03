@@ -11,16 +11,19 @@ import {upload} from '../middlewares/multer.middleware.js';
 
 const router = Router();
 
-router.route('/posts')
+//need to convert to like a foryou page later
+router.route('/')
 .get(authMiddleware,getAllPosts)
+//
+
+router.route('/create-post')
 .post(authMiddleware,
     upload.fields([
         {name: 'images', maxCount: 5},
         {name: 'videos', maxCount: 2}
-    ]),createPost)
+    ]),createPost);
 
-
-router.route('/posts/:id')
+router.route('/post/:id')
 .get(authMiddleware,getPostById)
 .put(authMiddleware,
     upload.fields([

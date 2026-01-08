@@ -5,13 +5,16 @@ import apiResponse from '../utils/apiResponse.js';
 import mongoose from 'mongoose';
 
 const getAllPosts = asyncHandler(async(req,res)=>{
-    const userId = req.user._id;
+
+})
+const getAllPostsByUser = asyncHandler(async(req,res)=>{
+    const userId = req.params.id;
 
     if(!mongoose.Types.ObjectId.isValid(userId)){
         throw new apiError(400,"Invalid user ID");
     }
     const allPosts = await Post.find({author: userId})
-    .select('title description postImages postVideos likeCount commentsCount author createdAt')
+    .select('title description postImages postVideos likedBy comments author createdAt')
     .populate({
         path: 'author',
         select: 'username avatar'
@@ -128,6 +131,7 @@ const deletePost = asyncHandler(async(req,res)=>{
 
 export {
     getAllPosts,
+    getAllPostsByUser,
     createPost,
     getPostById,
     updatePost,

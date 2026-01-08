@@ -13,6 +13,7 @@ import Posts from "./pages/Posts.jsx";
 import Profile from "./pages/Profile.jsx";
 import UserProfile  from './pages/UserProfile.jsx'
 
+import Comments from './pages/Comments.jsx'
 function App() {
     return (
       <>
@@ -63,6 +64,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <EditPost />
+                  </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/posts/:id/comments"
+                element={
+                  <ProtectedRoute>
+                    <Comments />
                   </ProtectedRoute>
                 }
             />

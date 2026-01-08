@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import {
-    getAllPosts, 
+    getAllPosts,
+    getAllPostsByUser, 
     createPost, 
     getPostById, 
     updatePost, 
@@ -13,8 +14,11 @@ const router = Router();
 
 //need to convert to like a foryou page later
 router.route('/')
-.get(authMiddleware,getAllPosts)
-//
+.get(authMiddleware,getAllPosts);
+
+router.route('/user/:id/posts')
+.get(authMiddleware,getAllPostsByUser)
+
 
 router.route('/create-post')
 .post(authMiddleware,
@@ -22,6 +26,7 @@ router.route('/create-post')
         {name: 'images', maxCount: 5},
         {name: 'videos', maxCount: 2}
     ]),createPost);
+
 
 router.route('/post/:id')
 .get(authMiddleware,getPostById)

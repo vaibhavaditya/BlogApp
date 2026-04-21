@@ -1,10 +1,15 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/auth.middleware";
+import { getCommentsByPost, addComment, deleteComment, updateComment } from "../controllers/comment.controller.js";
 const router = Router();
 
-router.route('/getCommentsByPost/:postId').get(getCommentsByPost);
-router.route('/addComment/:postId').post(authMiddleware, addComment);
-router.route('/deleteComment/:id').delete(authMiddleware, deleteComment);
-router.route('/updateComment/:id').put(authMiddleware, updateComment);
+router.route('/post/:postId')
+    .get(getCommentsByPost)
+    .post(authMiddleware, addComment);
+
+
+router.route('/:id')
+  .delete(authMiddleware, deleteComment)
+  .put(authMiddleware, updateComment);
 
 export default router;

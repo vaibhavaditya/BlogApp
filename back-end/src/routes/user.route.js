@@ -3,9 +3,10 @@ import {upload} from '../middlewares/multer.middleware.js';
 import {
     registerUser,
     loginUser,
+    logoutUser,
+    getMe,
     getUserProfile,
     getUserProfileById,
-    logoutUser,
     changeCurrentPassword,
     changeCurrentUserDetails,
     getAllFollowers,
@@ -34,7 +35,6 @@ router.route('/change-details').post(authMiddleware,changeCurrentUserDetails);
 router.route('/change-avatar').post(authMiddleware,upload.single('avatar'),changeAvatar);
 router.route('/profile').get(authMiddleware,getUserProfile);
 router.route('/profile/:id').get(getUserProfileById);
-
 router.route('/followers').get(authMiddleware,getAllFollowers);
 router.route('/following').get(authMiddleware,getAllFollowing);
 router.route('/followers/:id').get(authMiddleware,getAllFollowersById);

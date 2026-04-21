@@ -85,25 +85,10 @@ const updateComment = asyncHandler(async (req, res) => {
     return res.status(200).json(new apiResponse(200, comment, "Comment updated successfully"));
 });
 
-const getCommentCount = asyncHandler(async (req, res) => {
-    const postId = req.params.postId;
-
-    if(!mongoose.Types.ObjectId.isValid(postId)){
-        throw new apiError(400,"Invalid post id")
-    }
-    const post = await Post.findById(postId).select('commentsCount');
-
-    if(!post){
-        throw new apiError(404,"Post not found")
-    }
-
-    return res.status(200).json(new apiResponse(200, post.commentsCount, "Comment count fetched successfully"));
-});
 
 export {
     getCommentsByPost,
     addComment,
     deleteComment,
     updateComment,
-    getCommentCount
 };

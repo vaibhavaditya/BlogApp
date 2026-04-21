@@ -1,71 +1,71 @@
-import { likePost,unlikePost} from "../api/like.js"
-import { useAuth } from "../hooks/useAuth.js"
-import { useState } from "react"
-import {useNavigate} from "react-router-dom"
-const PostCard = ({post})=>{
-    const {user,isAuthorised} = useAuth();
-    const navigate = useNavigate();
+import React, { useState } from "react";
+import {likePost, unlikePost} from "../api/likeApi.js"
 
-    const [likedBy, setLikedBy] = useState(post.likedBy || []);
-    const isLiked = likedBy.some(u=> u._id.toString() === user?._id.toString())
+function PostCard({ post, user }) {
+  const author = post.author || {};
 
-    const likeAction = async ()=>{
-        if(!isAuthorised) return alert("Please login to like posts")
-        try {
-            if(isLiked){
-                await unlikePost(post._id);
-                setLikedBy((prev)=>{
-                    return prev.filter(u => u._id.toString()!== user?._id.toString())
-                })
-            } else{
-                await likePost(post._id);
-                setLikedBy((prev)=>{
-                    return [...prev,{_id: user._id}]
-                })
-            }
-        } catch (error) {
-            console.error("Error in liking/unliking post:", error);
-            alert("An error occurred. Please try again later.");
-        }
+  const [likes, setLikes] = useState(post.likedBy?.length || 0);
+  const [liked, setLiked] = useState(false);
 
+  
+  const handleLike = async () => {
+    try {
+      if(liked){
+        setLikes((prev) => prev - 1);
+        setLiked(false);
+        await unlikePost(post._id);
+      } 
+      else{
+        setLikes((prev) => prev + 1);
+        setLiked(true);
+        await likePost(post._id);
+      }
+    } catch (err) {
+      console.error("Like error", err);
     }
+  };
 
-    return(
+  useEffect(() => {
+    if (user && post.likedBy) {
+      setLiked(post.likedBy.includes(user._id));
+    }
+  }, [user, post.likedBy]);
+  
+  return (
+    <div>
+      {/* USER */}
+      <div>
+        <img
+          src={author.avatar || ""}
+          alt="avatar"
+        />
         <div>
-            <h3>{post.title}</h3>
-            {
-                post.postImages?.map((img,index)=>(
-                    <img
-                        key={index}
-                        src={img}
-                        alt={`post-img-${index}`}
-                    />
-                ))
-                
-            }
-
-            {
-                post.postVideos?.map((video,index)=>(
-                    <video
-                        key={index}
-                        src={video}
-                        controls
-                    />
-                ))
-                
-            }
-
-            <p>{post.description}</p>
-
-            <button onClick={likeAction}>{isLiked ? "Unlike" : "Like"}</button>
-            <span>{likedBy.length} Likes</span>
-            
-            <button onClick={() => navigate(`/posts/${post._id}/comments`)}>
-                Comments ({post.comments?.length || 0})
-            </button>
-
+          <p>{author.username || "Unknown User"}</p>
+          <p>{new Date(post.createdAt).toLocaleString()}</p>
         </div>
-    )
+      </div>
+
+      <h3>{post.title}</h3>
+
+      <p>{post.description}</p>
+
+      {post.postImages?.map((img, i) => (
+        <img key={i} src={img} alt="post" />
+      ))}
+
+      <div>
+        <p>Likes: {likes}</p>
+        <p>Comments: {post.comments.length}</p>
+      </div>
+
+      <div>
+        <button onClick={handleLike}>
+          {liked ? "Unlike" : "Like"}
+        </button>
+        <button>Comment</button>
+      </div>
+    </div>
+  );
 }
 
-export default PostCard
+export default PostCard;

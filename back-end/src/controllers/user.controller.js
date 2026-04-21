@@ -276,7 +276,7 @@ const getUserProfile = asyncHandler(async(req,res)=>{
     // .json(new apiResponse(200,userProfile[0],"User profile fetched successfully"))
 
     const userProfile = await User.findById(userId)
-    .select('username fullName bio avatar followersCount followingCount')
+    .select('username fullName bio avatar followers following')
     .populate('createdPosts')
 
     if(!userProfile){

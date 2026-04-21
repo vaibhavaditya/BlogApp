@@ -27,20 +27,10 @@ const postSchema = new Schema({
         ref: 'User'
     }],
 
-    likeCount: {
-        type: Number,
-        default: 0
-    },
-
     comments: [{
         type: Schema.Types.ObjectId,
         ref: 'Comment'
-    }],
-    
-    commentsCount: {
-        type: Number,
-        default: 0
-    },
+    }], 
 
     author: {
         type: Schema.Types.ObjectId,

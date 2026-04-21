@@ -1,12 +1,101 @@
 import {Post} from '../models/index.js';
+import { User } from '../models/user.model.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import apiError from '../utils/apiError.js';
 import apiResponse from '../utils/apiResponse.js';
 import mongoose from 'mongoose';
 
 const getAllPosts = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user ID");
+    }
+
+    const user = await User.findById(userId).select('following');
+
+    const randomFollowing = user.following
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 20);
+
+    
+    const allPosts = await Post.aggregate([
+        {
+            $match:{
+                author: {$in: randomFollowing}
+            }
+        },
+        {
+            $sort:{
+                createdAt : -1
+            }
+        },
+        {
+            $group:{
+                _id: "$author",
+                post: {$first: "$$ROOT"}
+            }
+        },
+        {
+            $replaceRoot: {newRoot: "$post"}
+        },
+        {
+            $addFeilds:{
+                isLiked: {
+                    $in: [req.user._id, "$likedBy"]
+                },
+            }
+        },
+        {
+            $lookup:{
+                from: "users",
+                localFeild: "author",
+                foreinFeild: "_id",
+                as: "author"
+            }
+        },
+
+        {
+            $unwind:"$author"
+        },
+        {
+            $addFeilds:{
+                author: {
+                    _id: "$author._id",
+                    username: "$author.username",
+                    avatar: "$author.avatar"
+                }
+            }
+        },
+        {
+            $limit: 20
+        },  
+    ])
+
+
+    return res.status(200).json(
+        new apiResponse(200, allPosts, "All posts fetched successfully")
+    );
 
 })
+const getAllPostsByMe = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(userId)){
+        throw new apiError(400,"Invalid user ID");
+    }
+
+    const allPosts = await Post.find({author: userId})
+    .select('title description postImages postVideos likedBy comments author createdAt')
+    .populate({
+        path: 'author',
+        select: 'username avatar'
+    })
+    .sort({createdAt: -1});   
+    
+    
+    return res.status(200).json(new apiResponse(200, allPosts, "All posts fetched successfully"));      
+})
+
 const getAllPostsByUser = asyncHandler(async(req,res)=>{
     const userId = req.params.id;
 
@@ -65,7 +154,7 @@ const getPostById = asyncHandler(async(req,res)=>{
     }
 
     const post = await Post.findById(postId)
-    .select('title description postImages postVideos likeCount commentsCount author createdAt')
+    .select('title description postImages postVideos author createdAt')
     .populate({ 
         path: 'author',
         select: 'username avatar'
@@ -129,11 +218,15 @@ const deletePost = asyncHandler(async(req,res)=>{
     return res.status(200).json(new apiResponse(200, null, "Post deleted successfully"));
 });
 
+
+
 export {
     getAllPosts,
+    getAllPostsByMe,
     getAllPostsByUser,
     createPost,
     getPostById,
     updatePost,
-    deletePost
+    deletePost,
+    isLiked
 }

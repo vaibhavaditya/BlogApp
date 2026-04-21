@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import {
     getAllPosts,
+    getAllPostsByMe,
     getAllPostsByUser, 
     createPost, 
     getPostById, 
@@ -12,9 +13,9 @@ import {upload} from '../middlewares/multer.middleware.js';
 
 const router = Router();
 
-//need to convert to like a foryou page later
-router.route('/')
-.get(authMiddleware,getAllPosts);
+router.route('/').get(authMiddleware,getAllPosts);
+
+router.route('/my-posts').get(authMiddleware,getAllPostsByMe);
 
 router.route('/user/:id/posts')
 .get(authMiddleware,getAllPostsByUser)

@@ -1,8 +1,12 @@
 import API from "./axios";
 
 // AUTH
-export const registerUser = (data) =>
-  API.post("/users/register", data);
+export const registerUser = (data) => 
+  API.post("/users/register", data, {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  });
 
 export const loginUser = (data) =>
   API.post("/users/login", data);

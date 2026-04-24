@@ -68,7 +68,7 @@ function PostCard({ post }) {
       {/* USER */}
       <div style={{ display: "flex", gap: 10 }}>
         <img
-          src={author.avatar || "https://via.placeholder.com/40"}
+          src={author.avatar}
           alt="avatar"
           width={40}
         />

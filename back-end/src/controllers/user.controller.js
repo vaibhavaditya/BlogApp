@@ -3,7 +3,8 @@ import {asyncHandler} from '../utils/asyncHandler.js';
 import apiError from '../utils/apiError.js';
 import apiResponse from '../utils/apiResponse.js';
 import mongoose from 'mongoose';
-
+import { log } from 'console';
+import { uploadOnCloudinary } from '../utils/cloudinary.js';
 
 const generateAccessAndRefreshToken = async(userId)=>{
     const user = await User.findById(userId);
@@ -20,80 +21,135 @@ const generateAccessAndRefreshToken = async(userId)=>{
 }
 
 
-const registerUser = asyncHandler( async(req,res)=>{
-    const {username,fullName,email,password,bio} = req.body;
+const registerUser = asyncHandler(async (req, res) => {
+  const { username, fullName, email, password, bio } = req.body;
 
-    if(!username || !fullName || !email || !password || !password.trim()){
-        throw new apiError(400,"Required credentials are not given")
+  if (
+    !username?.trim() ||
+    !fullName?.trim() ||
+    !email?.trim() ||
+    !password?.trim()
+  ) {
+    throw new apiError(400, "Required credentials are not given");
+  }
+
+  const userExists = await User.findOne({
+    $or: [{ email }, { username }],
+  });
+
+  if (userExists) {
+    throw new apiError(409, "User already exists");
+  }
+
+  const avatarLocalPath = req.file?.path;
+  let avatarUrl = "";
+
+  if (avatarLocalPath) {
+    const uploaded = await uploadOnCloudinary(avatarLocalPath);
+
+    if (!uploaded) {
+      throw new apiError(500, "Avatar upload failed");
     }
 
-    const userExists = await User.findOne({$or:[{email},{username}]})
+    avatarUrl = uploaded.url;
+  }
 
-    if(userExists){
-        throw new apiError(409,"User with given email or username already exists")
-    }
+  const user = await User.create({
+    username: username.trim(),
+    fullName: fullName.trim(),
+    email: email.trim(),
+    password,
+    avatar: avatarUrl,
+    role: "user",
+    bio,
+  });
 
-    const avatarUrl = req.file?.path || '';
+  const registeredUser = await User.findById(user._id);
 
-    const user = await User.create({
-        username,
-        fullName,
-        email,
-        password,
-        avatar:avatarUrl,
-        role:'user',
-        bio
-    });
+  return res
+    .status(201)
+    .json(
+      new apiResponse(201, registeredUser, "User registered successfully")
+    );
+});
 
-    if(!user){
-        throw new apiError(500,"Unable to create user");
-    }
+// ================= LOGIN =================
+const loginUser = asyncHandler(async (req, res) => {
+  const { username, password } = req.body;
 
-    const registeredUser = await User.findById(user._id);
-    return res.status(201).json(new apiResponse(201,registeredUser,"User registered successfully"))
-})
+  if (!username || !password || !password.trim()) {
+    throw new apiError(400, "Required credentials are not given");
+  }
 
-const loginUser = asyncHandler(async(req,res)=>{
-    const {username,password} = req.body;
+  const user = await User.findOne({ username }).select("+password");
+  if (!user) {
+    throw new apiError(400, "User does not exist");
+  }
 
-    if(!username || !password || !password.trim()){
-        throw new apiError(400,"Required credentials are not given")
-    }
+  const isPasswordValid = await user.isPasswordCorrect(password);
 
-    const user = await User.findOne({username: username}).select("+password");
-    if(!user){
-        throw new apiError(400,"User does not exits with given username")
-    }
+  if (!isPasswordValid) {
+    throw new apiError(401, "Wrong password");
+  }
 
-    const isPasswordValid = await user.isPasswordCorrect(password);
+  const { accessToken, refreshToken } =
+    await generateAccessAndRefreshToken(user._id);
 
-    if (!isPasswordValid) {
-        throw new apiError(401, "Wrong password please try again");
-    }
+  const options = {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+  };
 
-    
-    const {accessToken,refreshToken} = await generateAccessAndRefreshToken(user._id)
+  user.password = undefined;
 
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax"
-    };
-
-    user.password = undefined;
-
-    return res
+  return res
     .status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",refreshToken,options)
-    .json(new apiResponse(200,
-        {
-            user: user,
-        },
-        "User logged in successfully"
-    ))
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new apiResponse(200, { user }, "User logged in successfully")
+    );
+});
 
-})
+// ================= CHANGE AVATAR =================
+const changeAvatar = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new apiError(400, "Invalid user id");
+  }
+
+  const avatarLocalPath = req.file?.path;
+
+  if (!avatarLocalPath) {
+    throw new apiError(400, "No file uploaded");
+  }
+
+  const uploaded = await uploadOnCloudinary(avatarLocalPath);
+
+  if (!uploaded) {
+    throw new apiError(500, "Avatar upload failed");
+  }
+
+  const newAvatarUser = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        avatar: uploaded.url,
+      },
+    },
+    { new: true }
+  );
+
+  if (!newAvatarUser) {
+    throw new apiError(400, "Avatar cannot be changed");
+  }
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, newAvatarUser, "Avatar changed"));
+});
 
 const logoutUser = asyncHandler(async(req,res)=>{
     const userId = req.user._id;
@@ -113,7 +169,7 @@ const logoutUser = asyncHandler(async(req,res)=>{
 
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: false,
         sameSite: "lax"
     }
 
@@ -193,37 +249,6 @@ const changeCurrentUserDetails = asyncHandler(async(req,res)=>{
     .status(200)
     .json(new apiResponse(200,{},"Username updated succesfully"))
     
-})
-
-const changeAvatar = asyncHandler(async(req,res)=>{
-    const userId = req.user._id;
-
-    if(!mongoose.Types.ObjectId.isValid(userId)){
-        throw new apiError(400,"Invalid user id")
-    }
-
-    const avatarUrl = req.file?.path || '';
-    if(!avatarUrl){
-        throw new apiError(400,"Inavlid format/No file upload")
-    }
-
-    const newAvatarUser = await User.findByIdAndUpdate(
-        userId,
-        {
-            $set:{
-                avatar: avatarUrl
-            }
-        },
-    {new: true})
-
-    if(!newAvatarUser){
-        return new apiError(400,"Avatar cant be changed")
-    }
-
-    return res
-    .status(200)
-    .json(new apiResponse(200,{},"avatarChanged"))
-
 })
 
 const getUserProfile = asyncHandler(async(req,res)=>{

@@ -73,17 +73,6 @@ const userSchema = new Schema({
         enum: ["user", "admin"],
         default: "user"
     },
-
-    followersCount: {
-        type: Number,
-        default: 0
-    },
-
-    followingCount: {
-        type: Number,
-        default: 0
-    },
-
     refreshToken: {
         type: String,
         select: false
@@ -104,7 +93,7 @@ userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password,this.password);
 }
 
-userSchema.methods.generateAccessToken = async function(){
+userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
         {
             _id: this._id,
@@ -119,7 +108,7 @@ userSchema.methods.generateAccessToken = async function(){
 }
 
 
-userSchema.methods.generateRefreshToken = async function(){
+userSchema.methods.generateRefreshToken =  function(){
     return jwt.sign(
         {
             _id: this._id,

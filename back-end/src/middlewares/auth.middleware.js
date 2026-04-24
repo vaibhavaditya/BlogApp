@@ -5,16 +5,17 @@ import apiError from '../utils/apiError.js';
 
 export const authMiddleware = async (req,_,next)=>{
     try {
-        const token = req.cookies.accessToken ||req.headers.authorization?.replace("Bearer ","")
-    
+        
+        const token = req.cookies?.accessToken || req.headers.authorization?.replace("Bearer ", "");
+        
         if(!token){
             throw new apiError(401,'Not authorized, token missing');
         }
     
         const decoded = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
     
-        const user = await User.findById(decoded.id);
-    
+        const user = await User.findById(decoded._id);
+        
         if(!user){
             throw new apiError(401,'Not authorized, user not found');
         }

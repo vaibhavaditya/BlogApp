@@ -4,11 +4,10 @@ import useAuth from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
 function Login() {
-  const { setUser } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    email: "",
+    username: "",
     password: "",
   });
 
@@ -19,7 +18,6 @@ function Login() {
   const handleSubmit = async () => {
     try {
       const res = await loginUser(form);
-      setUser(res.data.user);
       navigate("/");
     } catch (err) {
       console.error("Login failed", err);
@@ -31,8 +29,8 @@ function Login() {
       <h2>Login</h2>
 
       <input
-        name="email"
-        placeholder="Email"
+        name="username"
+        placeholder="Username"
         onChange={handleChange}
       />
 

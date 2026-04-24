@@ -1,5 +1,5 @@
-import Post from '.../models/post.model.js';
-import Comment from '../models/comment.model.js';
+import {Post} from '../models/post.model.js';
+import {Comment} from '../models/comment.model.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import apiError from '../utils/apiError.js';
 import apiResponse from '../utils/apiResponse.js';

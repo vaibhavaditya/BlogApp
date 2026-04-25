@@ -51,7 +51,7 @@ function MyProfile() {
         <p>No posts yet</p>
       ) : (
         profile.createdPosts.map((p) => (
-          <PostCard key={p._id} post={p} />
+          <PostCard key={p._id} post={p} user={profile} />
         ))
       )}
     </div>

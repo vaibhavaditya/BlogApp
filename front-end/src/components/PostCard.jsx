@@ -1,27 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { likePost, unlikePost } from "../api/likeApi.js";
-import useAuth from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
-function PostCard({ post }) {
-  const { user } = useAuth();
+function PostCard({ post, user }) {
   const navigate = useNavigate();
 
-  const author = post.author || {};
+  const author = user || "Unknown User";
 
-  // state
   const [likes, setLikes] = useState(post.likedBy?.length || 0);
   const [liked, setLiked] = useState(false);
   const [loadingLike, setLoadingLike] = useState(false);
 
-  // decide liked from context
   useEffect(() => {
     if (user && post.likedBy) {
-      setLiked(post.likedBy.includes(user._id));
+      setLiked(
+        post.likedBy.some((id) => id.toString() === user._id)
+      );
     }
   }, [user, post.likedBy]);
 
-  // like/unlike with optimistic update + rollback
   const handleLike = async () => {
     if (!user) {
       alert("Login required");
@@ -36,7 +33,6 @@ function PostCard({ post }) {
     const prevLikes = likes;
 
     try {
-      // optimistic update
       if (liked) {
         setLiked(false);
         setLikes((p) => p - 1);
@@ -47,19 +43,11 @@ function PostCard({ post }) {
         await likePost(post._id);
       }
     } catch (err) {
-      console.error("Like error", err);
-
-      // rollback if API fails
       setLiked(prevLiked);
       setLikes(prevLikes);
     } finally {
       setLoadingLike(false);
     }
-  };
-
-  // navigate to full post
-  const handleOpenPost = () => {
-    navigate(`/post/${post._id}`);
   };
 
   return (
@@ -68,7 +56,7 @@ function PostCard({ post }) {
       {/* USER */}
       <div style={{ display: "flex", gap: 10 }}>
         <img
-          src={author.avatar}
+          src={author.avatar || "/default-avatar.png"}
           alt="avatar"
           width={40}
         />
@@ -86,40 +74,26 @@ function PostCard({ post }) {
 
       {/* IMAGES */}
       {post.postImages?.map((img, i) => (
-        <img
-          key={i}
-          src={img}
-          alt="post"
-          style={{ width: "200px", marginRight: 5 }}
-        />
+        <img key={i} src={img} style={{ width: 200 }} />
       ))}
 
       {/* VIDEOS */}
       {post.postVideos?.map((vid, i) => (
-        <video
-          key={i}
-          src={vid}
-          controls
-          style={{ width: "300px", display: "block", marginTop: 5 }}
-        />
+        <video key={i} src={vid} controls style={{ width: 300 }} />
       ))}
 
       {/* STATS */}
-      <div>
-        <p>Likes: {likes}</p>
-        <p>Comments: {post.comments?.length || 0}</p>
-      </div>
+      <p>Likes: {likes}</p>
+      <p>Comments: {post.comments?.length || 0}</p>
 
       {/* ACTIONS */}
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={handleLike} disabled={loadingLike}>
-          {liked ? "❤️ Unlike" : "🤍 Like"}
-        </button>
+      <button onClick={handleLike} disabled={loadingLike}>
+        {liked ? "❤️ Unlike" : "🤍 Like"}
+      </button>
 
-        <button onClick={handleOpenPost}>
-          Comment
-        </button>
-      </div>
+      <button onClick={() => navigate(`/post/${post._id}`)}>
+        Comment
+      </button>
     </div>
   );
 }

@@ -8,7 +8,7 @@ function MyProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await getMyProfile();
+        const res = await getMyProfile();        
         setProfile(res.data.data); // if you didn't standardize API  
       } catch (err) {
         console.error(err);

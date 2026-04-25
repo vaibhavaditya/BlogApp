@@ -164,6 +164,8 @@ const createPost = asyncHandler(async (req, res) => {
     throw new apiError(500, "Post creation failed");
   }
 
+  await User.findByIdAndUpdate(userId, { $push: { createdPosts: newPost._id } });
+
   return res
     .status(201)
     .json(new apiResponse(201, newPost, "Post created successfully"));

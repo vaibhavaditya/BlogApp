@@ -17,7 +17,7 @@ function Profile() {
         const userRes = await getProfile(id);
         const postRes = await getPostsByUser(id);
 
-        setUser(userRes.data.user);
+        setUser(userRes.data.data);
         setPosts(postRes.data.data || []);
       } catch (err) {
         console.error(err);
@@ -61,7 +61,7 @@ function Profile() {
         <p>No posts</p>
       ) : (
         posts.map((post) => (
-          <PostCard key={post._id} post={post} />
+          <PostCard key={post._id} post={post} user={user}/>
         ))
       )}
     </div>

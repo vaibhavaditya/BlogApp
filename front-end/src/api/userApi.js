@@ -34,6 +34,8 @@ export const changeDetails = (data) =>
 export const changeAvatar = (formData) =>
   API.post("/users/change-avatar", formData);
 
+export const searchUsers = (query) =>
+  API.get("/users/search", { params: { q: query } });
 // FOLLOW SYSTEM
 export const followUser = (id) =>
   API.post(`/users/add-following/${id}`);

@@ -572,12 +572,35 @@ const removeFollowing = asyncHandler(async(req,res)=>{
     .json(new apiResponse(200,{},"User removed from following list successfully"))
 })
 
+const searchUsers = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+
+  if (!q || !q.trim()) {
+    return res.status(200).json(
+      new apiResponse(200, [], "No query provided")
+    );
+  }
+
+  const users = await User.find({
+    $or: [
+      { username: { $regex: `^${q}`, $options: "i" } },
+      { fullName: { $regex: `^${q}`, $options: "i" } }
+    ]
+  })
+    .select("username avatar fullName")
+    .limit(10);
+
+  return res.status(200).json(
+    new apiResponse(200, users, "Users fetched successfully")
+  );
+});
 
 export {
     registerUser,
     loginUser,
     logoutUser,
     changeCurrentPassword,
+    searchUsers,
     getUserProfileById,
     getUserProfile,
     getAllFollowers,

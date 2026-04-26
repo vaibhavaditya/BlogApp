@@ -5,6 +5,7 @@ import {
     loginUser,
     logoutUser,
     getUserProfile,
+    searchUsers,
     getUserProfileById,
     changeCurrentPassword,
     changeCurrentUserDetails,
@@ -26,6 +27,7 @@ router.route('/me').get(authMiddleware,(req,res)=>{
     res.status(200).json({user: req.user});
 })
 
+router.route('/search').get(searchUsers);
 router.route('/register').post(upload.single('avatar'),registerUser);
 router.route('/login').post(loginUser);
 router.route('/logout').post(authMiddleware,logoutUser);

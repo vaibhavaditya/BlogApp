@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMyProfile } from "../api/userApi";
+import { getMyProfile} from "../api/userApi";
 import PostCard from "../components/PostCard";
 
 function MyProfile() {

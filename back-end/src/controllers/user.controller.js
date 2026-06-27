@@ -427,6 +427,14 @@ const followAUser = asyncHandler(async(req,res)=>{
         throw new apiError(400, "You cannot follow yourself");
     }
 
+    const alreadyFollowing = await User.exists({
+        _id: userId,
+        following: toFollow
+    });
+
+    if (alreadyFollowing){
+        throw new apiError(400, "Already following this user");
+    }
 
     const user = await User.findByIdAndUpdate(
         userId,
